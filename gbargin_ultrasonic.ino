@@ -1,7 +1,11 @@
 #include <Servo.h>
+#include "logger.h"
 
 // NEXT
-// Add start stop command (hand before sensores for 5 seconds?)
+// - Move forward while inspecting for obstacles
+// - Different stratagies for obstacles on te right and on the left
+// - Add start stop command (hand before sensores for 5 seconds?)
+// - No movement detection. Is it possible?
 
 Servo myservo;
 #define ENABLEA 2
@@ -19,67 +23,6 @@ int servpos = 0;
 #define ECHOPIN   9
 #define SERVOPIN  10
 
-// Logger Class
-// FIXME: move to another file
-#define NONE  0
-#define DEBUG 2
-class Logger {
-public:
-  Logger();
-  void set_level(int);
-  void disable();
-  void debug(char []);
-  void ident();
-  void print_identation();
-  void unident();
-
-private:
-  int level;
-  int ident_level;
-};
-
-Logger::Logger() {
-  this->level = NONE;
-  this->ident_level = 0;
-}
-
-void Logger::set_level(int new_level) {
-  this->level = new_level;
-}
-
-
-void Logger::debug(char message[]) {
-  if(this->level == DEBUG) {
-    this->print_identation();
-    Serial.println(message); 
-  }
-}
-
-// FIXME: mover sprintf para dentro do metodo
-//void Logger::debug(const char *format, ...) {
-//  if(this->level == DEBUG) {
-//    this->print_identation();
-//    
-//    va_list v_List;
-//    va_start( v_List, format );
-//    char buffer[255];
-//    sprintf( buffer, format, v_List );
-//    va_end( v_List );
-//    
-//    Serial.println(buffer); 
-//  }
-//}
-
-
-void Logger::ident() { this->ident_level = this->ident_level + 1; }
-
-void Logger::print_identation() {
-  for(int i = 0; i < this->ident_level; i++) {
-    Serial.print(" ");
-  }
-}
-
-void Logger::unident() { this->ident_level = this->ident_level - 1; }
 
 Logger logger; 
 
@@ -98,7 +41,6 @@ void setup() {
   pinMode(TRIGPIN, OUTPUT);
   pinMode(ECHOPIN, INPUT);
 
-  Serial.begin(9600);
   logger.set_level(DEBUG);
   logger.debug("Oi!");
   logger.debug("Iniciando o robô...");
@@ -109,7 +51,7 @@ void setup() {
 }
 
 void loop() {
-  car();
+  forward();
   avoid();    
 }
 
@@ -275,21 +217,20 @@ int obstacle_ahead() {
 }
 
 
-void car() {
+void forward() {
   logger.debug("car(): beginning...");
   logger.ident();
   
   while(!obstacle_ahead()) {
     enableMotors();
-    forward(300);   
+    forward(200);   
     disableMotors(); 
     //delay(100);   
   }
   breakRobot(0);
   logger.unident();
-
-
 }
+
 void avoid()
 {
     logger.debug("avoid()");
