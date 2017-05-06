@@ -1,19 +1,26 @@
 #include <Servo.h>
+
+// NEXT
+// Add start stop command (hand before sensores for 5 seconds?)
+
 Servo myservo;
-int enableA = 1;
-int pinA1 = 3;
-int pinA2 = 2;
+#define ENABLEA 2
+#define PINA1   4
+#define PINA2   3
 
 int servposnum = 0;
 int servpos = 0;
 
-int enableB = 6;
-int pinB1 = 5;
-int pinB2 = 4;
-#define trigPin 7
-#define echoPin 8
+#define ENABLEB   7
+#define PINB1     6
+#define PINB2     5
+
+#define TRIGPIN   8
+#define ECHOPIN   9
+#define SERVOPIN  10
 
 // Logger Class
+// FIXME: move to another file
 #define NONE  0
 #define DEBUG 2
 class Logger {
@@ -79,17 +86,17 @@ Logger logger;
 void setup() {
   // put your setup code here, to run once:
   //configure pin modes for the drive motors
-  pinMode (enableA, OUTPUT);
-  pinMode (pinA1, OUTPUT);
-  pinMode (pinA2, OUTPUT);
+  pinMode (ENABLEA, OUTPUT);
+  pinMode (PINA1, OUTPUT);
+  pinMode (PINA2, OUTPUT);
 
-  pinMode (enableB, OUTPUT);
-  pinMode (pinB1, OUTPUT);
-  pinMode (pinB2, OUTPUT); 
+  pinMode (ENABLEB, OUTPUT);
+  pinMode (PINB1, OUTPUT);
+  pinMode (PINB2, OUTPUT); 
 
   //configure pin modes for the ultrasonci se3nsor
-  pinMode(trigPin, OUTPUT);
-  pinMode(echoPin, INPUT);
+  pinMode(TRIGPIN, OUTPUT);
+  pinMode(ECHOPIN, INPUT);
 
   Serial.begin(9600);
   logger.set_level(DEBUG);
@@ -97,11 +104,11 @@ void setup() {
   logger.debug("Iniciando o robô...");
 
   //Servo pins
-  myservo.attach(9);
+  myservo.attach(SERVOPIN);
+
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
   car();
   avoid();    
 }
@@ -111,50 +118,50 @@ void loop() {
 void motorAforward() {
  logger.debug("motorAforward()");
  
- digitalWrite (pinA1, HIGH);
- digitalWrite (pinA2, LOW);
+ digitalWrite (PINA1, HIGH);
+ digitalWrite (PINA2, LOW);
 }
 void motorBforward() {
- logger.debug("motorAforward()");
+ logger.debug("motorBforward()");
 
- digitalWrite (pinB1, LOW);
- digitalWrite (pinB2, HIGH);
+ digitalWrite (PINB1, LOW);
+ digitalWrite (PINB2, HIGH);
 }
 void motorAbackward() {
- digitalWrite (pinA1, LOW);
- digitalWrite (pinA2, HIGH);
+ digitalWrite (PINA1, LOW);
+ digitalWrite (PINA2, HIGH);
 }
 void motorBbackward() {
- digitalWrite (pinB1, HIGH);
- digitalWrite (pinB2, LOW);
+ digitalWrite (PINB1, HIGH);
+ digitalWrite (PINB2, LOW);
 }
 void motorAstop() {
- digitalWrite (pinA1, HIGH);
- digitalWrite (pinA2, HIGH);
+ digitalWrite (PINA1, HIGH);
+ digitalWrite (PINA2, HIGH);
 }
 void motorBstop() {
- digitalWrite (pinB1, HIGH);
- digitalWrite (pinB2, HIGH);
+ digitalWrite (PINB1, HIGH);
+ digitalWrite (PINB2, HIGH);
 }
 void motorAcoast() {
- digitalWrite (pinA1, LOW);
- digitalWrite (pinA2, LOW);
+ digitalWrite (PINA1, LOW);
+ digitalWrite (PINA2, LOW);
 }
 void motorBcoast() {
- digitalWrite (pinB1, LOW);
- digitalWrite (pinB2, LOW);
+ digitalWrite (PINB1, LOW);
+ digitalWrite (PINB2, LOW);
 }
 void motorAon() {
- digitalWrite (enableA, HIGH);
+ digitalWrite (ENABLEA, HIGH);
 }
 void motorBon() {
- digitalWrite (enableB, HIGH);
+ digitalWrite (ENABLEB, HIGH);
 }
 void motorAoff() {
- digitalWrite (enableA, LOW);
+ digitalWrite (ENABLEA, LOW);
 }
 void motorBoff() {
- digitalWrite (enableB, LOW);
+ digitalWrite (ENABLEB, LOW);
 }
 // Movement functions
 void forward (int duration) {
@@ -212,10 +219,10 @@ void enableMotors() {
 
 int distance() {
   int duration, distance;
-  digitalWrite(trigPin, HIGH);
+  digitalWrite(TRIGPIN, HIGH);
   delayMicroseconds(1000);
-  digitalWrite(trigPin, LOW);
-  duration = pulseIn(echoPin, HIGH);
+  digitalWrite(TRIGPIN, LOW);
+  duration = pulseIn(ECHOPIN, HIGH);
   distance = (duration/2) / 29.1;
   
   char msg[255];
@@ -267,15 +274,16 @@ int obstacle_ahead() {
   return obstacle_found;
 }
 
+
 void car() {
   logger.debug("car(): beginning...");
   logger.ident();
   
   while(!obstacle_ahead()) {
     enableMotors();
-    forward(100);   
+    forward(300);   
     disableMotors(); 
-    delay(100);   
+    //delay(100);   
   }
   breakRobot(0);
   logger.unident();
@@ -286,13 +294,15 @@ void avoid()
 {
     logger.debug("avoid()");
     logger.ident();
-    
+
+    enableMotors();
     backward(250);
     if(random(2)) {
       right(360);
     } else {
       left(360);
     }
+    disableMotors();
     
     logger.unident();
 }
