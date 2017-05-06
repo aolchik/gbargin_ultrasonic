@@ -24,7 +24,68 @@ int servpos = 0;
 #define SERVOPIN  10
 
 
+class Engine {
+};
+
+int distance();
+
+// Class Radar
+#define MIN_SERVO_ANGLE   1200
+#define MAX_SERVO_ANGLE   2600
+#define SERVO_STEPS       10 
+#define MINIMUM_DISTANCE  15
+#define SERVO_DELAY       100
+class Radar {
+public:
+  Radar(Logger);
+  int obstacle();
+
+private:
+  Logger logger;
+};
+
+Radar::Radar(Logger l) {
+  this->logger = l;
+}
+
+int Radar::obstacle() {
+  logger.debug("obstacle_ahead()");
+  logger.ident();
+  
+  int servo_step = (MAX_SERVO_ANGLE - MIN_SERVO_ANGLE)/SERVO_STEPS;
+  int mid_point = (MAX_SERVO_ANGLE + MIN_SERVO_ANGLE)/2;
+  char msg[255];
+  sprintf(msg,"servo_step: %d",servo_step);
+  logger.debug(msg);
+  
+  int obstacle_found = false;
+  for(int serv_pos = mid_point; serv_pos > MIN_SERVO_ANGLE && !obstacle_found; serv_pos = serv_pos - servo_step) {
+    myservo.writeMicroseconds(serv_pos);
+    obstacle_found = distance() <= MINIMUM_DISTANCE;
+    char msg[255];
+    sprintf(msg,"servo_pos: %d",serv_pos);
+    logger.debug(msg);
+    delay(SERVO_DELAY);
+  }
+
+  for(int serv_pos = mid_point; serv_pos < MAX_SERVO_ANGLE && !obstacle_found; serv_pos = serv_pos + servo_step) {
+    myservo.writeMicroseconds(serv_pos);
+    obstacle_found = distance() <= MINIMUM_DISTANCE;
+    char msg[255];
+    sprintf(msg,"servo_pos: %d",serv_pos);
+    logger.debug(msg);
+    delay(SERVO_DELAY);
+  }
+  
+  myservo.writeMicroseconds(mid_point);
+  delay(SERVO_DELAY);
+  
+  logger.unident();
+  return obstacle_found;
+}
+
 Logger logger; 
+Radar radar(logger);
 
 void setup() {
   // put your setup code here, to run once:
@@ -51,8 +112,18 @@ void setup() {
 }
 
 void loop() {
-  forward();
-  avoid();    
+  logger.debug("car(): beginning...");
+  logger.ident();
+  
+  while(!radar.obstacle()) {
+    enableMotors();
+    forward(200);   
+    disableMotors(); 
+    //delay(100);   
+  }
+  breakRobot(0);
+  logger.unident();
+  avoid();
 }
 
 //Defining functions so it's more easy
@@ -172,63 +243,6 @@ int distance() {
   logger.debug(msg);
   
   return distance;
-}
-
-#define MIN_SERVO_ANGLE   1200
-#define MAX_SERVO_ANGLE   2600
-#define SERVO_STEPS       10 
-#define MINIMUM_DISTANCE  15
-#define SERVO_DELAY       100
-
-int obstacle_ahead() {
-  logger.debug("obstacle_ahead()");
-  logger.ident();
-  
-  int servo_step = (MAX_SERVO_ANGLE - MIN_SERVO_ANGLE)/SERVO_STEPS;
-  int mid_point = (MAX_SERVO_ANGLE + MIN_SERVO_ANGLE)/2;
-  char msg[255];
-  sprintf(msg,"servo_step: %d",servo_step);
-  logger.debug(msg);
-  
-  int obstacle_found = false;
-  for(int serv_pos = mid_point; serv_pos > MIN_SERVO_ANGLE && !obstacle_found; serv_pos = serv_pos - servo_step) {
-    myservo.writeMicroseconds(serv_pos);
-    obstacle_found = distance() <= MINIMUM_DISTANCE;
-    char msg[255];
-    sprintf(msg,"servo_pos: %d",serv_pos);
-    logger.debug(msg);
-    delay(SERVO_DELAY);
-  }
-
-  for(int serv_pos = mid_point; serv_pos < MAX_SERVO_ANGLE && !obstacle_found; serv_pos = serv_pos + servo_step) {
-    myservo.writeMicroseconds(serv_pos);
-    obstacle_found = distance() <= MINIMUM_DISTANCE;
-    char msg[255];
-    sprintf(msg,"servo_pos: %d",serv_pos);
-    logger.debug(msg);
-    delay(SERVO_DELAY);
-  }
-  
-  myservo.writeMicroseconds(mid_point);
-  delay(SERVO_DELAY);
-  
-  logger.unident();
-  return obstacle_found;
-}
-
-
-void forward() {
-  logger.debug("car(): beginning...");
-  logger.ident();
-  
-  while(!obstacle_ahead()) {
-    enableMotors();
-    forward(200);   
-    disableMotors(); 
-    //delay(100);   
-  }
-  breakRobot(0);
-  logger.unident();
 }
 
 void avoid()
