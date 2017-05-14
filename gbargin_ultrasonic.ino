@@ -1,31 +1,30 @@
 #include <Servo.h>
 #include "logger.h"
+#include "engine.h"
+#include "bluetooth_controller.h"
 
 // NEXT
-// - Move forward while inspecting for obstacles
-// - Different stratagies for obstacles on te right and on the left
+// * Move forward while inspecting for obstacles
+// - Switch between bluetooth and autonomous mode
+// - Improve responsiveness for bluetooth control
+// - Different strategies for obstacles on te right and on the left
 // - Add start stop command (hand before sensores for 5 seconds?)
 // - No movement detection. Is it possible?
 
-Servo myservo;
+// @IP: Moving to engine.cpp
 #define ENABLEA 2
 #define PINA1   4
 #define PINA2   3
-
-int servposnum = 0;
-int servpos = 0;
-
 #define ENABLEB   7
 #define PINB1     6
 #define PINB2     5
 
+Servo myservo;
+int servposnum = 0;
+int servpos = 0;
 #define TRIGPIN   8
 #define ECHOPIN   9
 #define SERVOPIN  10
-
-
-class Engine {
-};
 
 int distance();
 
@@ -37,26 +36,26 @@ int distance();
 #define SERVO_DELAY       100
 class Radar {
 public:
-  Radar(Logger);
+  Radar(Logger*);
   int obstacle();
 
 private:
-  Logger logger;
+  Logger* logger;
 };
 
-Radar::Radar(Logger l) {
+Radar::Radar(Logger* l) {
   this->logger = l;
 }
 
 int Radar::obstacle() {
-  logger.debug("obstacle_ahead()");
-  logger.ident();
+  logger->debug("obstacle_ahead()");
+  logger->ident();
   
   int servo_step = (MAX_SERVO_ANGLE - MIN_SERVO_ANGLE)/SERVO_STEPS;
   int mid_point = (MAX_SERVO_ANGLE + MIN_SERVO_ANGLE)/2;
   char msg[255];
   sprintf(msg,"servo_step: %d",servo_step);
-  logger.debug(msg);
+  logger->debug(msg);
   
   int obstacle_found = false;
   for(int serv_pos = mid_point; serv_pos > MIN_SERVO_ANGLE && !obstacle_found; serv_pos = serv_pos - servo_step) {
@@ -64,7 +63,7 @@ int Radar::obstacle() {
     obstacle_found = distance() <= MINIMUM_DISTANCE;
     char msg[255];
     sprintf(msg,"servo_pos: %d",serv_pos);
-    logger.debug(msg);
+    logger->debug(msg);
     delay(SERVO_DELAY);
   }
 
@@ -73,69 +72,63 @@ int Radar::obstacle() {
     obstacle_found = distance() <= MINIMUM_DISTANCE;
     char msg[255];
     sprintf(msg,"servo_pos: %d",serv_pos);
-    logger.debug(msg);
+    logger->debug(msg);
     delay(SERVO_DELAY);
   }
   
   myservo.writeMicroseconds(mid_point);
   delay(SERVO_DELAY);
   
-  logger.unident();
+  logger->unident();
   return obstacle_found;
 }
 
-Logger logger; 
-Radar radar(logger);
+Logger* logger;
+Radar* radar;
+Engine* engine;
+BluetoothController* btcontrol;
 
 void setup() {
-  // put your setup code here, to run once:
-  //configure pin modes for the drive motors
-  pinMode (ENABLEA, OUTPUT);
-  pinMode (PINA1, OUTPUT);
-  pinMode (PINA2, OUTPUT);
+  //configure pin modes for the ultrasonic sensor
+  //pinMode(TRIGPIN, OUTPUT);
+  //pinMode(ECHOPIN, INPUT);
 
-  pinMode (ENABLEB, OUTPUT);
-  pinMode (PINB1, OUTPUT);
-  pinMode (PINB2, OUTPUT); 
+  logger = new Logger();
+  //logger->set_level(DEBUG);
+  logger->debug("Oi!");
+  logger->debug("Iniciando o robô...");
 
-  //configure pin modes for the ultrasonci se3nsor
-  pinMode(TRIGPIN, OUTPUT);
-  pinMode(ECHOPIN, INPUT);
-
-  logger.set_level(DEBUG);
-  logger.debug("Oi!");
-  logger.debug("Iniciando o robô...");
+  engine = new Engine(logger);
+  btcontrol = new BluetoothController(logger, engine);
+  radar = new Radar(logger);
 
   //Servo pins
-  myservo.attach(SERVOPIN);
-
+  //myservo.attach(SERVOPIN);
 }
 
 void loop() {
-  logger.debug("car(): beginning...");
-  logger.ident();
   
-  while(!radar.obstacle()) {
-    enableMotors();
-    forward(200);   
-    disableMotors(); 
-    //delay(100);   
-  }
-  breakRobot(0);
-  logger.unident();
-  avoid();
+  btcontrol->followCommand();  
+//  while(!radar.obstacle()) {
+//    enableMotors();
+//    forward(200);   
+//    disableMotors(); 
+//    //delay(100);   
+//  }
+//  breakRobot(0);
+  //avoid();
 }
 
 //Defining functions so it's more easy
 //motor functions
 void motorAforward() {
- logger.debug("motorAforward()");
+ logger->debug("motorAforward()");
  
  digitalWrite (PINA1, HIGH);
  digitalWrite (PINA2, LOW);
 }
 void motorBforward() {
- logger.debug("motorBforward()");
+ logger->debug("motorBforward()");
 
  digitalWrite (PINB1, LOW);
  digitalWrite (PINB2, HIGH);
@@ -176,11 +169,12 @@ void motorAoff() {
 void motorBoff() {
  digitalWrite (ENABLEB, LOW);
 }
+
 // Movement functions
 void forward (int duration) {
   char msg[255];
   sprintf(msg,"forward(): %d",duration);
-  logger.debug(msg);
+  logger->debug(msg);
   
   motorAforward();
   motorBforward();
@@ -190,7 +184,7 @@ void forward (int duration) {
 void backward (int duration) {
   char msg[255];
   sprintf(msg,"backward(): %d",duration);
-  logger.debug(msg);
+  logger->debug(msg);
 
   motorAbackward();
   motorBbackward();
@@ -198,13 +192,13 @@ void backward (int duration) {
 }
 
 void right (int duration) {
- logger.debug("right()");
+ logger->debug("right()");
  motorAbackward();
  motorBforward();
  delay (duration);
 }
 void left (int duration) {
- logger.debug("left()");
+ logger->debug("left()");
  motorAforward();
  motorBbackward();
  delay (duration);
@@ -220,12 +214,12 @@ void breakRobot (int duration) {
  delay (duration);
 }
 void disableMotors() {
-  logger.debug("disableMotors()");
+  logger->debug("disableMotors()");
   motorAoff();
   motorBoff();
 }
 void enableMotors() {
- logger.debug("enableMotors()");
+ logger->debug("enableMotors()");
  motorAon();
  motorBon();
 }
@@ -240,15 +234,15 @@ int distance() {
   
   char msg[255];
   sprintf(msg,"distance(): %d",distance);
-  logger.debug(msg);
+  logger->debug(msg);
   
   return distance;
 }
 
 void avoid()
 {
-    logger.debug("avoid()");
-    logger.ident();
+    logger->debug("avoid()");
+    logger->ident();
 
     enableMotors();
     backward(250);
@@ -259,7 +253,7 @@ void avoid()
     }
     disableMotors();
     
-    logger.unident();
+    logger->unident();
 }
 
 

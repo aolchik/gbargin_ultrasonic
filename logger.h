@@ -2,6 +2,9 @@
 #define NONE  0
 #define DEBUG 2
 
+#ifndef Logger_H
+#define Logger_H
+
 class Logger {
 public:
   Logger();
@@ -16,3 +19,5 @@ private:
   int level;
   int ident_level;
 };
+
+#endif
