@@ -8,6 +8,7 @@
 class Engine {
 public:
   Engine(Logger*);
+  void avoid();
   void backward();
   void backward(int);
   void backwardLeft();
@@ -20,6 +21,7 @@ public:
   void left(int);
   void right();
   void right(int);
+  void setSpeed();
   void stop();
 private:
   Logger* logger;

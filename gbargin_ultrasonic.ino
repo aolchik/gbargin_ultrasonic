@@ -4,6 +4,8 @@
 #include "bluetooth_controller.h"
 
 // NEXT
+// - Why speed is not working?
+//    http://blog.pennybuying.com/down/f/F815A.pdf
 // * Move forward while inspecting for obstacles
 // - Switch between bluetooth and autonomous mode
 // - Improve responsiveness for bluetooth control
@@ -19,21 +21,21 @@
 #define PINB1     6
 #define PINB2     5
 
-Servo myservo;
 int servposnum = 0;
 int servpos = 0;
-#define TRIGPIN   8
-#define ECHOPIN   9
-#define SERVOPIN  10
 
 int distance();
 
 // Class Radar
-#define MIN_SERVO_ANGLE   1200
+#define ECHOPIN   9
 #define MAX_SERVO_ANGLE   2600
-#define SERVO_STEPS       10 
+#define MIN_SERVO_ANGLE   1200
 #define MINIMUM_DISTANCE  15
 #define SERVO_DELAY       100
+#define SERVO_STEPS       10 
+#define SERVOPIN  10
+#define TRIGPIN   8
+
 class Radar {
 public:
   Radar(Logger*);
@@ -41,43 +43,64 @@ public:
 
 private:
   Logger* logger;
+  Servo myservo;
+  int servo_step;
+  int mid_point;
+  int serv_pos;
 };
 
 Radar::Radar(Logger* l) {
   this->logger = l;
+
+  //configure pin modes for the ultrasonic sensor
+  pinMode(TRIGPIN, OUTPUT);
+  pinMode(ECHOPIN, INPUT);
+
+  //Servo pins
+  this->myservo.attach(SERVOPIN);
+
+  this->servo_step = (MAX_SERVO_ANGLE - MIN_SERVO_ANGLE)/SERVO_STEPS;
+  this->mid_point = (MAX_SERVO_ANGLE + MIN_SERVO_ANGLE)/2;
+  char msg[255];
+  sprintf(msg,"servo_step: %d",this->servo_step);
+  this->logger->debug(msg);
+  this->serv_pos = this->mid_point;
+  this->myservo.writeMicroseconds(serv_pos);
 }
 
+//FIXME: Refactor
 int Radar::obstacle() {
-  logger->debug("obstacle_ahead()");
+  logger->debug("obstacle()");
   logger->ident();
   
-  int servo_step = (MAX_SERVO_ANGLE - MIN_SERVO_ANGLE)/SERVO_STEPS;
-  int mid_point = (MAX_SERVO_ANGLE + MIN_SERVO_ANGLE)/2;
-  char msg[255];
-  sprintf(msg,"servo_step: %d",servo_step);
-  logger->debug(msg);
-  
   int obstacle_found = false;
-  for(int serv_pos = mid_point; serv_pos > MIN_SERVO_ANGLE && !obstacle_found; serv_pos = serv_pos - servo_step) {
-    myservo.writeMicroseconds(serv_pos);
-    obstacle_found = distance() <= MINIMUM_DISTANCE;
-    char msg[255];
-    sprintf(msg,"servo_pos: %d",serv_pos);
-    logger->debug(msg);
-    delay(SERVO_DELAY);
+  if(servo_step > 0) {
+    if (serv_pos > MIN_SERVO_ANGLE && !obstacle_found) {
+      serv_pos = serv_pos - this->servo_step;
+      this->myservo.writeMicroseconds(serv_pos);
+      obstacle_found = distance() <= MINIMUM_DISTANCE;
+      char msg[255];
+      sprintf(msg,"servo_pos: %d",serv_pos);
+      logger->debug(msg);
+      delay(SERVO_DELAY);
+    } else {
+      servo_step = -servo_step;
+    }
   }
 
-  for(int serv_pos = mid_point; serv_pos < MAX_SERVO_ANGLE && !obstacle_found; serv_pos = serv_pos + servo_step) {
-    myservo.writeMicroseconds(serv_pos);
-    obstacle_found = distance() <= MINIMUM_DISTANCE;
-    char msg[255];
-    sprintf(msg,"servo_pos: %d",serv_pos);
-    logger->debug(msg);
-    delay(SERVO_DELAY);
+  if(servo_step < 0) {
+    if(serv_pos < MAX_SERVO_ANGLE && !obstacle_found) {
+      serv_pos = serv_pos - this->servo_step;
+      this->myservo.writeMicroseconds(serv_pos);
+      obstacle_found = distance() <= MINIMUM_DISTANCE;
+      char msg[255];
+      sprintf(msg,"servo_pos: %d",serv_pos);
+      logger->debug(msg);
+      delay(SERVO_DELAY);
+    } else {
+      servo_step = -servo_step;
+    }
   }
-  
-  myservo.writeMicroseconds(mid_point);
-  delay(SERVO_DELAY);
   
   logger->unident();
   return obstacle_found;
@@ -89,10 +112,6 @@ Engine* engine;
 BluetoothController* btcontrol;
 
 void setup() {
-  //configure pin modes for the ultrasonic sensor
-  //pinMode(TRIGPIN, OUTPUT);
-  //pinMode(ECHOPIN, INPUT);
-
   logger = new Logger();
   //logger->set_level(DEBUG);
   logger->debug("Oi!");
@@ -101,21 +120,21 @@ void setup() {
   engine = new Engine(logger);
   btcontrol = new BluetoothController(logger, engine);
   radar = new Radar(logger);
-
-  //Servo pins
-  //myservo.attach(SERVOPIN);
 }
 
 void loop() {
   
   btcontrol->followCommand();  
-//  while(!radar.obstacle()) {
-//    enableMotors();
+  if(!radar->obstacle()) {
+      engine->forward();
 //    forward(200);   
 //    disableMotors(); 
 //    //delay(100);   
-//  }
-//  breakRobot(0);
+  } else {
+    engine->stop();
+    engine->avoid();
+  }
+  //breakRobot(0);
   //avoid();
 }
 

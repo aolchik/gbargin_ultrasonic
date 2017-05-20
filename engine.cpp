@@ -6,6 +6,7 @@
 #define ENABLEB   7
 #define PINB1     6
 #define PINB2     5
+#define SPEED     150
 
 Engine::Engine(Logger* l) {
   pinMode (ENABLEA, OUTPUT);
@@ -127,20 +128,40 @@ void Engine::disableMotors() {
 
 void Engine::enableMotors() {
  logger->debug("enableMotors()");
- this->motorAon();
- this->motorBon();
+ //this->motorAon();
+ //this->motorBon();
+ this->setSpeed();
+}
+
+void Engine::setSpeed() {
+ analogWrite(ENABLEA, SPEED);
+ analogWrite(ENABLEB, SPEED);  
 }
 
 void Engine::motorAon() {
- digitalWrite (ENABLEA, HIGH);
+ //digitalWrite (ENABLEA, HIGH);
 }
 void Engine::motorBon() {
- digitalWrite (ENABLEB, HIGH);
+ //digitalWrite (ENABLEB, HIGH);
 }
 void Engine::motorAoff() {
  digitalWrite (ENABLEA, LOW);
 }
 void Engine::motorBoff() {
  digitalWrite (ENABLEB, LOW);
+}
+
+void Engine::avoid()
+{
+    this->logger->debug("avoid()");
+    this->logger->ident();
+
+    backward(250);
+    if(random(2)) {
+      right(360);
+    } else {
+      left(360);
+    }   
+    logger->unident();
 }
 
