@@ -4,20 +4,25 @@
 #include "bluetooth_controller.h"
 
 // NEXT
-// - Why speed is not working?
-//    http://blog.pennybuying.com/down/f/F815A.pdf
-// * Move forward while inspecting for obstacles
-// - Switch between bluetooth and autonomous mode
+// - Improve speed regulation (speeds 1 and 2 are not strong enough)
+// - Use wi-fi module
+// - Fix radars and open space to camera
+// - Issue: frontal left motor sometimes fails
+// - Add lights
+// - Add buzzer
+// - Remove old methods in this file
+// - Remove warnings
+// - Radar flickering
 // - Improve responsiveness for bluetooth control
 // - Different strategies for obstacles on te right and on the left
 // - Add start stop command (hand before sensores for 5 seconds?)
 // - No movement detection. Is it possible?
 
-// @IP: Moving to engine.cpp
-#define ENABLEA 2
+// @WIP: Moving to engine.cpp
+#define ENABLEA 3
 #define PINA1   4
-#define PINA2   3
-#define ENABLEB   7
+#define PINA2   2
+#define ENABLEB   11
 #define PINB1     6
 #define PINB2     5
 
@@ -113,7 +118,7 @@ BluetoothController* btcontrol;
 
 void setup() {
   logger = new Logger();
-  //logger->set_level(DEBUG);
+  logger->set_level(DEBUG);
   logger->debug("Oi!");
   logger->debug("Iniciando o robô...");
 
@@ -123,19 +128,16 @@ void setup() {
 }
 
 void loop() {
-  
   btcontrol->followCommand();  
-  if(!radar->obstacle()) {
-      engine->forward();
-//    forward(200);   
-//    disableMotors(); 
-//    //delay(100);   
-  } else {
-    engine->stop();
-    engine->avoid();
+  if(btcontrol->getAutoMode()) {
+    logger->debug("In auto mode...");
+    if(!radar->obstacle()) { 
+      engine->forward(btcontrol->getSpeed(),200);
+     } else {
+      engine->stop();
+      engine->avoid(btcontrol->getSpeed());
+    }
   }
-  //breakRobot(0);
-  //avoid();
 }
 
 //Defining functions so it's more easy
@@ -274,6 +276,3 @@ void avoid()
     
     logger->unident();
 }
-
-
-

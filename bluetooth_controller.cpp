@@ -24,8 +24,16 @@ int BluetoothController::getSpeed() {
 void BluetoothController::followCommand() {
   if (this->bluetoothSerial->available()) {
     this->val = this->bluetoothSerial->read();
-    //this->bluetoothSerial->write(this->val);
-    this->logger->debug(this->val); // @FIXME: Seems this log is not working
+
+    if (this->val == this->last_val) {
+      return;
+    }
+
+    char val_str[1];
+    sprintf(val_str, "%c", this->val);
+    this->logger->debug(val_str);
+
+    this->last_val = this->val;
 
     if (this->val == 'S') { // Stop Forward
         this->engine->stop();

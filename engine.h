@@ -8,20 +8,20 @@
 class Engine {
 public:
   Engine(Logger*);
-  void avoid();
-  void backward();
+  void avoid(int);
   void backward(int);
-  void backwardLeft();
-  void backwardRight();
-  void forward();
+  void backward(int, int);
+  void backwardLeft(int);
+  void backwardRight(int);
   void forward(int);
-  void forwardLeft();
-  void forwardRight();
-  void left();
+  void forward(int, int);
+  void forwardLeft(int);
+  void forwardRight(int);
   void left(int);
-  void right();
+  void left(int, int);
   void right(int);
-  void setSpeed();
+  void right(int, int);
+  void setSpeed(int);
   void stop();
 private:
   Logger* logger;
@@ -30,7 +30,7 @@ private:
   void motorAforward();
   void motorBforward();
   void disableMotors();
-  void enableMotors();
+  void enableMotors(int);
   void motorAon();
   void motorBon();
   void motorAoff();
@@ -38,5 +38,3 @@ private:
 };
 
 #endif
-
-

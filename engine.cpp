@@ -1,12 +1,12 @@
 #include "engine.h"
 
-#define ENABLEA   2
+#define ENABLEA   3
 #define PINA1     4
-#define PINA2     3
-#define ENABLEB   7
+#define PINA2     2
+#define ENABLEB   11
 #define PINB1     6
 #define PINB2     5
-#define SPEED     150
+#define SPEED     80
 
 Engine::Engine(Logger* l) {
   pinMode (ENABLEA, OUTPUT);
@@ -21,78 +21,79 @@ Engine::Engine(Logger* l) {
   this->logger = l;
 }
 
-void Engine::forward (int duration) {
-  this->forward();
+void Engine::forward (int speed, int duration) {
+  this->forward(speed);
   delay (duration);
   this->disableMotors();
 }
 
-void Engine::forward () {
-  this->enableMotors();
+void Engine::forward (int speed) {
+  this->enableMotors(speed);
   this->motorAforward();
   this->motorBforward();
 }
 
 void Engine::stop () {
+  logger->debug("stop()");
   this->disableMotors();
 }
 
-void Engine::backward (int duration) {
-  this->backward();
+void Engine::backward (int speed, int duration) {
+  this->backward(speed);
   delay (duration);
   this->disableMotors();
 }
 
-void Engine::backward () {
-  this->enableMotors();
+void Engine::backward (int speed) {
+  this->enableMotors(speed);
   this->motorAbackward();
   this->motorBbackward();
 }
 
-void Engine::right () {
-  this->enableMotors();
+void Engine::right (int speed) {
+  this->enableMotors(speed);
   this->motorAbackward();
   this->motorBforward();
 }
 
-void Engine::right (int duration) {
-  this->right();
+void Engine::right (int speed, int duration) {
+  this->right(speed);
   delay (duration);
   this->disableMotors();
 }
 
-void Engine::left () {
-  this->enableMotors();
+void Engine::left (int speed) {
+  this->enableMotors(speed);
   this->motorAforward();
   this->motorBbackward();
 }
 
-void Engine::left (int duration) {
-  this->left();
+void Engine::left (int speed, int duration) {
+  this->left(speed);
   delay (duration);
   this->disableMotors();
 }
 
-void Engine::backwardLeft () {
-  this->enableMotors();
+void Engine::backwardLeft (int speed) {
+  this->enableMotors(speed);
   this->motorAbackward();
   this->motorBoff();
 }
 
-void Engine::backwardRight () {
-  this->enableMotors();
+void Engine::backwardRight (int speed) {
+  this->enableMotors(speed);
   this->motorAoff();
   this->motorBbackward();
 }
 
-void Engine::forwardLeft() {
-  this->enableMotors();
+void Engine::forwardLeft(int speed) {
+  this->enableMotors(speed);
   this->motorAforward();
   this->motorBoff();  
 }
 
-void Engine::forwardRight() {
-  this->enableMotors();
+void Engine::forwardRight(int speed) {
+  this->enableMotors(speed);
   this->motorAoff();
   this->motorBforward();  
 }
@@ -126,16 +127,16 @@ void Engine::disableMotors() {
   this->motorBoff();
 }
 
-void Engine::enableMotors() {
+void Engine::enableMotors(int speed) {
  logger->debug("enableMotors()");
  //this->motorAon();
  //this->motorBon();
- this->setSpeed();
+ this->setSpeed(speed);
 }
 
-void Engine::setSpeed() {
- analogWrite(ENABLEA, SPEED);
- analogWrite(ENABLEB, SPEED);  
+void Engine::setSpeed(int speed) {
+ analogWrite(ENABLEA, speed);
+ analogWrite(ENABLEB, speed);  
 }
 
 void Engine::motorAon() {
@@ -151,17 +152,16 @@ void Engine::motorBoff() {
  digitalWrite (ENABLEB, LOW);
 }
 
-void Engine::avoid()
+void Engine::avoid(int speed)
 {
     this->logger->debug("avoid()");
     this->logger->ident();
 
-    backward(250);
+    this->backward(speed, 250);
     if(random(2)) {
-      right(360);
+      this->right(speed, 360);
     } else {
-      left(360);
+      this->left(speed, 360);
     }   
     logger->unident();
 }
-
